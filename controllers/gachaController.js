@@ -73,7 +73,7 @@ const selectTierBasedOnWeights = (weights) => {
 const generateDummyPrizes = async (packageAmount) => {
     const dummyPrizes = [];
     const selectedTiers = [];
-    const usedPlayers = []; // Menyimpan daftar pemain yang sudah terpakai agar tidak duplikat
+    const usedPlayers = []; // Menyimpan daftar pemain agar gambar di tiap kartu tidak kembar
 
     // Ambil bobot dari database berdasarkan nominal paket
     let config = await PackageConfig.findOne({ packageAmount });
@@ -87,27 +87,16 @@ const generateDummyPrizes = async (packageAmount) => {
         else weights = { Nova: 48, Pulse: 36, Flux: 15, Radiant: 1 };
     }
 
-    console.log(`[DUMMY GEN] Generating varied tiers for Package: Rp ${packageAmount} using weights:`, weights);
+    console.log(`[DUMMY GEN] Generating natural tiers for Package: Rp ${packageAmount} using weights:`, weights);
 
     const totalCards = 3;
 
-    // Pilih 3 tier dengan mekanisme variasi cerdas (mencegah ketiganya 100% sama persis jika ada opsi lain)
+    // Pilih 3 tier secara independen murni berdasarkan persentase bobot admin
     for (let i = 0; i < totalCards; i++) {
-        let chosenTier = selectTierBasedOnWeights(weights);
-        
-        // Jika sudah ada 2 kartu dengan tier yang sama persis, berikan kesempatan kecil untuk 
-        // meroll ulang agar hasilnya lebih bervariasi (kecuali bobot tier tersebut memang 100%)
-        if (i === 2 && selectedTiers[0] === selectedTiers[1] && selectedTiers[0] === chosenTier && weights[chosenTier] < 90) {
-            let alternativeTier = selectTierBasedOnWeights(weights);
-            if (alternativeTier !== chosenTier) {
-                chosenTier = alternativeTier;
-            }
-        }
-        
-        selectedTiers.push(chosenTier);
+        selectedTiers.push(selectTierBasedOnWeights(weights));
     }
 
-    // Acak posisi urutan kartu agar dinamis (tidak selalu urut)
+    // Acak posisi urutan kartu agar dinamis
     selectedTiers.sort(() => 0.5 - Math.random());
 
     for (const selectedTier of selectedTiers) {
@@ -130,7 +119,7 @@ const generateDummyPrizes = async (packageAmount) => {
             players = await getRandomPlayers('a', 2, usedPlayers);
         }
         
-        // Masukkan gambar ke usedPlayers agar kartu berikutnya tidak memakai gambar orang yang sama
+        // Masukkan gambar ke usedPlayers agar antar kartu tidak ada foto orang yang sama
         usedPlayers.push(...players.filter(p => p !== PLACEHOLDER_IMAGE));
         players.sort(() => 0.5 - Math.random());
         dummyPrizes.push({ tier: selectedTier, players: players });
