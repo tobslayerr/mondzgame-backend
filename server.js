@@ -14,6 +14,7 @@ const gachaRoutes = require('./routes/gachaRoutes');
 const paymentSettingRoutes = require('./routes/paymentSettingRoutes');
 const adminSettingRoutes = require('./routes/adminSettingRoutes');
 const playerConfigRoutes = require('./routes/playerConfigRoutes');
+const packageConfigRoutes = require('./routes/packageConfigRoutes');
 
 const app = express();
 
@@ -72,6 +73,7 @@ app.use('/api/gacha', gachaRoutes);
 app.use('/api/payment-settings', paymentSettingRoutes);
 app.use('/api/admin-settings', adminSettingRoutes);
 app.use('/api/player-configs', playerConfigRoutes);
+app.use('/api/package-configs', packageConfigRoutes);
 
 // Basic route untuk cek server
 app.get('/', (req, res) => {

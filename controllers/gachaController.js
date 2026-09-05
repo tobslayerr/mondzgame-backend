@@ -2,6 +2,7 @@ const GachaLink = require('../models/GachaLink');
 const Account = require('../models/Account');
 const Invoice = require('../models/Invoice');
 const PlayerConfig = require('../models/PlayerConfig'); // Model konfigurasi pemain dinamis
+const PackageConfig = require('../models/PackageConfig');
 
 const getTimestamp = () => new Date().toLocaleString('en-GB', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
@@ -69,54 +70,38 @@ const selectTierBasedOnWeights = (weights) => {
     return Object.keys(weights)[0] || 'Nova';
 };
 
-// --- LOGIKA GENERATE DUMMY PRIZES BERDASARKAN PAKET ---
 const generateDummyPrizes = async (packageAmount) => {
     const dummyPrizes = [];
     const selectedTiers = [];
     const usedPlayers = [];
 
-    console.log(`[DUMMY GEN] Generating strict tiers for Package: Rp ${packageAmount}`);
-
-    if (packageAmount >= 150000) {
-        // --- PAKET 150.000: Radiant mendominasi, Nova & Pulse bersih total ---
-        const radiantChance = Math.random();
-        if (radiantChance < 0.2) {
-            selectedTiers.push('Radiant', 'Radiant', 'Radiant'); // 3 Radiant (jarang)
-        } else if (radiantChance < 0.75) {
-            selectedTiers.push('Radiant', 'Radiant', 'Flux'); // 2 Radiant + 1 Flux (sangat tinggi)
-        } else {
-            selectedTiers.push('Radiant', 'Flux', 'Flux'); // 1 Radiant + 2 Flux
-        }
-    } else if (packageAmount >= 100000) {
-        // --- PAKET 100.000: Radiant min 1, Flux pasti, Nova DIHILANGKAN (Bobot 0) ---
-        const radiantTwoChance = Math.random();
-        if (radiantTwoChance < 0.3) {
-            selectedTiers.push('Radiant', 'Radiant', 'Flux'); 
-        } else {
-            // Hanya Radiant, Flux, atau Pulse (Nova 0%)
-            const thirdTier = Math.random() < 0.6 ? 'Flux' : 'Pulse';
-            selectedTiers.push('Radiant', 'Flux', thirdTier);
-        }
+    // Ambil bobot dari database berdasarkan nominal paket
+    let config = await PackageConfig.findOne({ packageAmount });
+    let weights;
+    
+    if (config && config.weights) {
+        weights = config.weights;
     } else {
-        // --- PAKET 50.000 (Standar): Nova sering, Pulse/Flux sedang, Radiant jarang ---
-        const weights = { Nova: 48, Pulse: 36, Flux: 15, Radiant: 1 };
-        
-        const numCardsChoice = Math.random();
-        const totalCards = numCardsChoice < 0.2 ? 1 : (numCardsChoice < 0.5 ? 2 : 3);
-
-        for (let i = 0; i < totalCards; i++) {
-            selectedTiers.push(selectTierBasedOnWeights(weights));
-        }
+        // Fallback default jika belum diset di db
+        if (packageAmount >= 150000) weights = { Nova: 0, Pulse: 0, Flux: 40, Radiant: 60 };
+        else if (packageAmount >= 100000) weights = { Nova: 0, Pulse: 30, Flux: 50, Radiant: 20 };
+        else weights = { Nova: 48, Pulse: 36, Flux: 15, Radiant: 1 };
     }
 
-    // Acak urutan posisi kartu
+    console.log(`[DUMMY GEN] Generating tiers for Package: Rp ${packageAmount} using weights:`, weights);
+
+    const numCardsChoice = Math.random();
+    const totalCards = packageAmount >= 100000 ? 3 : (numCardsChoice < 0.2 ? 1 : (numCardsChoice < 0.5 ? 2 : 3));
+
+    for (let i = 0; i < totalCards; i++) {
+        selectedTiers.push(selectTierBasedOnWeights(weights));
+    }
+
     selectedTiers.sort(() => 0.5 - Math.random());
-    console.log(`[DUMMY GEN] Final Tiers selected for Rp ${packageAmount}: ${selectedTiers.join(', ')}`);
 
     for (const selectedTier of selectedTiers) {
         let players = [];
         if (selectedTier === 'Nova') { 
-            // Nova: Kombinasi acak dari Tier C dan Tier D
             const subTier1 = Math.random() < 0.5 ? 'c' : 'd';
             const subTier2 = Math.random() < 0.5 ? 'c' : 'd';
             const p1 = await getRandomPlayers(subTier1, 1, usedPlayers);
@@ -124,16 +109,13 @@ const generateDummyPrizes = async (packageAmount) => {
             const p2 = await getRandomPlayers(subTier2, 1, usedPlayers);
             players = [...p1, ...p2];
         } else if (selectedTier === 'Pulse') { 
-            // Pulse: 1 dari Tier B + 1 dari Tier C
             const playerB = await getRandomPlayers('b', 1, usedPlayers);
             usedPlayers.push(...playerB.filter(p => p !== PLACEHOLDER_IMAGE));
             const playerC = await getRandomPlayers('c', 1, usedPlayers);
             players = [...playerB, ...playerC];
         } else if (selectedTier === 'Flux') { 
-            // Flux: 2 dari Tier B
             players = await getRandomPlayers('b', 2, usedPlayers);
         } else if (selectedTier === 'Radiant') { 
-            // Radiant: 2 dari Tier A
             players = await getRandomPlayers('a', 2, usedPlayers);
         }
         
