@@ -86,7 +86,7 @@ const generateDummyPrizes = async (packageAmount) => {
         else weights = { Nova: 48, Pulse: 36, Flux: 15, Radiant: 1 };
     }
 
-    // 1. KONSISTEN: Selalu buat 3 Kotak Tier untuk "Anda Melewatkan"
+    // 1. KONSISTEN: Selalu buat 3 Kotak/Kartu Tier untuk "Anda Melewatkan"
     const totalDummyBoxes = 3;
 
     for (let i = 0; i < totalDummyBoxes; i++) {
@@ -96,41 +96,35 @@ const generateDummyPrizes = async (packageAmount) => {
     // Acak posisi tier
     selectedTiers.sort(() => 0.5 - Math.random());
 
-    // 2. KONSISTEN: Selalu isi 3 Gambar Pemain di dalam masing-masing Kotak
+    // 2. KEMBALIKAN KE 2 PEMAIN: Menyesuaikan aturan wajib Schema Database
     for (const selectedTier of selectedTiers) {
         let players = [];
 
         if (selectedTier === 'Nova') {
-            // Ambil kombinasi 3 pemain (2 dari D, 1 dari C)
-            const p1 = await getRandomPlayers('d', 2, usedPlayers);
+            const p1 = await getRandomPlayers('d', 1, usedPlayers);
             usedPlayers.push(...p1.filter(p => p && !p.includes('placeholder')));
             const p2 = await getRandomPlayers('c', 1, usedPlayers);
             players = [...p1, ...p2];
         } else if (selectedTier === 'Pulse') {
-            // Ambil kombinasi 3 pemain (2 dari C, 1 dari B)
-            const p1 = await getRandomPlayers('c', 2, usedPlayers);
+            const p1 = await getRandomPlayers('c', 1, usedPlayers);
             usedPlayers.push(...p1.filter(p => p && !p.includes('placeholder')));
             const p2 = await getRandomPlayers('b', 1, usedPlayers);
             players = [...p1, ...p2];
         } else if (selectedTier === 'Flux') {
-            // Ambil 3 pemain murni dari B
-            players = await getRandomPlayers('b', 3, usedPlayers);
+            players = await getRandomPlayers('b', 2, usedPlayers);
         } else if (selectedTier === 'Radiant') {
-            // Ambil 3 pemain murni dari A
-            players = await getRandomPlayers('a', 3, usedPlayers);
+            players = await getRandomPlayers('a', 2, usedPlayers);
         }
         
         // Simpan pemain yang sudah terpakai agar tidak muncul di kotak lain
         usedPlayers.push(...players.filter(p => p && !p.includes('placeholder')));
         players.sort(() => 0.5 - Math.random());
 
-        // FAILSAFE: Jika data pemain di database kurang dari 3, paksa penuhi dengan placeholder agar UI tidak rusak
-        while (players.length < 3) {
+        // FAILSAFE: Paksa array menjadi TEPAT 2 agar database tidak crash
+        while (players.length < 2) {
             players.push('/players/placeholder.webp');
         }
-
-        // Pastikan jumlah gambar pemain tidak pernah lebih dari 3
-        players = players.slice(0, 3);
+        players = players.slice(0, 2);
 
         dummyPrizes.push({ tier: selectedTier, players: players });
     }
