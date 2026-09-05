@@ -73,9 +73,8 @@ const selectTierBasedOnWeights = (weights) => {
 const generateDummyPrizes = async (packageAmount) => {
     const dummyPrizes = [];
     const selectedTiers = [];
-    const usedPlayers = []; // Menyimpan daftar pemain agar gambar di tiap kartu tidak kembar
+    const usedPlayers = []; // Mencegah gambar pemain kembar/duplikat muncul
 
-    // Ambil bobot dari database berdasarkan nominal paket
     let config = await PackageConfig.findOne({ packageAmount });
     let weights;
     
@@ -87,41 +86,52 @@ const generateDummyPrizes = async (packageAmount) => {
         else weights = { Nova: 48, Pulse: 36, Flux: 15, Radiant: 1 };
     }
 
-    console.log(`[DUMMY GEN] Generating natural tiers for Package: Rp ${packageAmount} using weights:`, weights);
+    // 1. KONSISTEN: Selalu buat 3 Kotak Tier untuk "Anda Melewatkan"
+    const totalDummyBoxes = 3;
 
-    const totalCards = 3;
-
-    // Pilih 3 tier secara independen murni berdasarkan persentase bobot admin
-    for (let i = 0; i < totalCards; i++) {
+    for (let i = 0; i < totalDummyBoxes; i++) {
         selectedTiers.push(selectTierBasedOnWeights(weights));
     }
 
-    // Acak posisi urutan kartu agar dinamis
+    // Acak posisi tier
     selectedTiers.sort(() => 0.5 - Math.random());
 
+    // 2. KONSISTEN: Selalu isi 3 Gambar Pemain di dalam masing-masing Kotak
     for (const selectedTier of selectedTiers) {
         let players = [];
-        if (selectedTier === 'Nova') { 
-            const subTier1 = Math.random() < 0.5 ? 'c' : 'd';
-            const subTier2 = Math.random() < 0.5 ? 'c' : 'd';
-            const p1 = await getRandomPlayers(subTier1, 1, usedPlayers);
-            usedPlayers.push(...p1.filter(p => p !== PLACEHOLDER_IMAGE));
-            const p2 = await getRandomPlayers(subTier2, 1, usedPlayers);
+
+        if (selectedTier === 'Nova') {
+            // Ambil kombinasi 3 pemain (2 dari D, 1 dari C)
+            const p1 = await getRandomPlayers('d', 2, usedPlayers);
+            usedPlayers.push(...p1.filter(p => p && !p.includes('placeholder')));
+            const p2 = await getRandomPlayers('c', 1, usedPlayers);
             players = [...p1, ...p2];
-        } else if (selectedTier === 'Pulse') { 
-            const playerB = await getRandomPlayers('b', 1, usedPlayers);
-            usedPlayers.push(...playerB.filter(p => p !== PLACEHOLDER_IMAGE));
-            const playerC = await getRandomPlayers('c', 1, usedPlayers);
-            players = [...playerB, ...playerC];
-        } else if (selectedTier === 'Flux') { 
-            players = await getRandomPlayers('b', 2, usedPlayers);
-        } else if (selectedTier === 'Radiant') { 
-            players = await getRandomPlayers('a', 2, usedPlayers);
+        } else if (selectedTier === 'Pulse') {
+            // Ambil kombinasi 3 pemain (2 dari C, 1 dari B)
+            const p1 = await getRandomPlayers('c', 2, usedPlayers);
+            usedPlayers.push(...p1.filter(p => p && !p.includes('placeholder')));
+            const p2 = await getRandomPlayers('b', 1, usedPlayers);
+            players = [...p1, ...p2];
+        } else if (selectedTier === 'Flux') {
+            // Ambil 3 pemain murni dari B
+            players = await getRandomPlayers('b', 3, usedPlayers);
+        } else if (selectedTier === 'Radiant') {
+            // Ambil 3 pemain murni dari A
+            players = await getRandomPlayers('a', 3, usedPlayers);
         }
         
-        // Masukkan gambar ke usedPlayers agar antar kartu tidak ada foto orang yang sama
-        usedPlayers.push(...players.filter(p => p !== PLACEHOLDER_IMAGE));
+        // Simpan pemain yang sudah terpakai agar tidak muncul di kotak lain
+        usedPlayers.push(...players.filter(p => p && !p.includes('placeholder')));
         players.sort(() => 0.5 - Math.random());
+
+        // FAILSAFE: Jika data pemain di database kurang dari 3, paksa penuhi dengan placeholder agar UI tidak rusak
+        while (players.length < 3) {
+            players.push('/players/placeholder.webp');
+        }
+
+        // Pastikan jumlah gambar pemain tidak pernah lebih dari 3
+        players = players.slice(0, 3);
+
         dummyPrizes.push({ tier: selectedTier, players: players });
     }
 
