@@ -75,14 +75,12 @@ const generateDummyPrizes = async (packageAmount) => {
     const selectedTiers = [];
     const usedPlayers = [];
 
-    // Ambil bobot dari database berdasarkan nominal paket
     let config = await PackageConfig.findOne({ packageAmount });
     let weights;
     
     if (config && config.weights) {
         weights = config.weights;
     } else {
-        // Fallback default jika belum diset di db
         if (packageAmount >= 150000) weights = { Nova: 0, Pulse: 0, Flux: 40, Radiant: 60 };
         else if (packageAmount >= 100000) weights = { Nova: 0, Pulse: 30, Flux: 50, Radiant: 20 };
         else weights = { Nova: 48, Pulse: 36, Flux: 15, Radiant: 1 };
@@ -90,8 +88,8 @@ const generateDummyPrizes = async (packageAmount) => {
 
     console.log(`[DUMMY GEN] Generating tiers for Package: Rp ${packageAmount} using weights:`, weights);
 
-    const numCardsChoice = Math.random();
-    const totalCards = packageAmount >= 100000 ? 3 : (numCardsChoice < 0.2 ? 1 : (numCardsChoice < 0.5 ? 2 : 3));
+    // --- DIUBAH DI SINI: Selalu pastikan memunculkan 3 kartu secara konsisten ---
+    const totalCards = 3;
 
     for (let i = 0; i < totalCards; i++) {
         selectedTiers.push(selectTierBasedOnWeights(weights));
