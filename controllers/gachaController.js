@@ -177,7 +177,8 @@ exports.claimGachaLink = async (req, res) => {
                 msg: 'Link gacha ini sudah digunakan dan akun telah diambil.',
                 account: null,
                 accountId: null,
-                dummyPrizes: savedDummies
+                dummyPrizes: savedDummies,
+                packageAmount: packageAmount // Menyertakan nominal paket
             });
         }
 
@@ -188,7 +189,10 @@ exports.claimGachaLink = async (req, res) => {
 
         if (claim !== 'true') {
             console.log(`[${timestamp}] [INFO] Initial info request: ${token}`);
-            return res.status(200).json({ status: 'not_used' });
+            return res.status(200).json({ 
+                status: 'not_used',
+                packageAmount: packageAmount // Menyertakan nominal paket untuk info awal
+            });
         }
 
         console.log(`[${timestamp}] [PROCESS] Starting claim for package Rp ${packageAmount}: ${token}`);
@@ -247,7 +251,8 @@ exports.claimGachaLink = async (req, res) => {
                 tier: prizeDetails.tier,
             },
             accountId: prizeDetails._id,
-            dummyPrizes: dummyPrizes
+            dummyPrizes: dummyPrizes,
+            packageAmount: packageAmount
         });
 
     } catch (err) {
