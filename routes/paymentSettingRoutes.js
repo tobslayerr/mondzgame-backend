@@ -1,16 +1,22 @@
+// routes/paymentSettingsRoutes.js (Atau nama file route pembayaran Anda)
 const express = require('express');
 const router = express.Router();
-const { getPaymentSettings, updatePaymentSetting } = require('../controllers/paymentSettingController');
-const { upload } = require('../config/cloudinary');
 
-// Sesuaikan dengan nama fungsi middleware otentikasi admin Anda yang ada di middlewares/authMidlleware.js
-const { verifyToken, isAdmin } = require('../middlewares/authMidlleware'); 
+// 1. Import middleware pelindung superadmin
+const superadminAuth = require('../middlewares/superadminAuth');
 
-// Endpoint Publik: Mengambil data pembayaran untuk ditampilkan di frontend
+// 2. Import controller pembayaran (PASTIKAN NAMA FUNGSINYA SESUAI DENGAN CONTROLLER ANDA)
+// Contoh di bawah menggunakan getPaymentSettings dan updatePaymentSettings
+const { 
+    getPaymentSettings, 
+    updatePaymentSetting
+} = require('../controllers/paymentSettingController');
+
+// Rute GET (Publik) -> Untuk pembeli melihat rekening di form Invoice
 router.get('/', getPaymentSettings);
 
-// Endpoint Admin: Memperbarui data (menggunakan multer upload.single('image') untuk menangani file gambar QRIS)
-// Parameter 'image' adalah nama field dari form-data frontend nantinya
-router.put('/:id', upload.single('image'), updatePaymentSetting);
+// Rute PUT/POST (Terlindungi) -> Untuk Superadmin menyimpan pengaturan
+router.put('/', superadminAuth, updatePaymentSetting); 
+router.post('/', superadminAuth, updatePaymentSetting); // Pakai POST jika frontend Anda pakai API.post
 
 module.exports = router;

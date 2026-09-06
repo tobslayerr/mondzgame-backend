@@ -72,7 +72,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', invoiceRoutes); 
 app.use('/api/gacha', gachaRoutes);
-app.use('/api/payment-settings', superadminAuth, paymentSettingRoutes);
+app.use('/api/payment-settings', paymentSettingRoutes);
 app.use('/api/admin-settings', adminSettingRoutes);
 app.use('/api/player-configs', playerConfigRoutes);
 app.use('/api/package-configs', packageConfigRoutes);
