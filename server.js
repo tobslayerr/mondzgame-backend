@@ -15,6 +15,8 @@ const paymentSettingRoutes = require('./routes/paymentSettingRoutes');
 const adminSettingRoutes = require('./routes/adminSettingRoutes');
 const playerConfigRoutes = require('./routes/playerConfigRoutes');
 const packageConfigRoutes = require('./routes/packageConfigRoutes');
+const superadminRoutes = require('./routes/superadminRoutes');
+const superadminAuth = require('./middlewares/superadminAuth');
 
 const app = express();
 
@@ -70,10 +72,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', invoiceRoutes); 
 app.use('/api/gacha', gachaRoutes);
-app.use('/api/payment-settings', paymentSettingRoutes);
+app.use('/api/payment-settings', superadminAuth, paymentSettingRoutes);
 app.use('/api/admin-settings', adminSettingRoutes);
 app.use('/api/player-configs', playerConfigRoutes);
 app.use('/api/package-configs', packageConfigRoutes);
+app.use('/api/superadmin', superadminRoutes);
 
 // Basic route untuk cek server
 app.get('/', (req, res) => {
